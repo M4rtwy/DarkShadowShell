@@ -105,7 +105,8 @@ PanelWindow {
             cellWidth: width / Math.max(4, Math.floor(width / 120)); cellHeight: 112
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            model: am.apps
+            // V4.96: the app icons only exist while the menu is out (they were made at start and kept)
+            model: am.visible ? am.apps : []
             delegate: Item {
                 id: cellIt
                 width: grid.cellWidth; height: grid.cellHeight
@@ -119,10 +120,11 @@ PanelWindow {
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter; y: 14
                     width: 56; height: 56
-                    Blob { anchors.fill: parent; kind: Look.shape; color: cellIt.pin ? pal.container : "transparent"; visible: cellIt.pin }
-                    IconImage { anchors.centerIn: parent; implicitSize: 40; source: Icons.get(modelData.icon || "application-x-executable", "application-x-executable")
-                        scale: cm.pressed ? 0.9 : (cm.containsMouse ? 1.08 : 1)
-                        Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.OutBack; easing.overshoot: 1.6 } } }
+                    // V4.89: drawn like the dock draws its apps (Edit mode > Icons)
+                    AppIcon { anchors.centerIn: parent; size: am.dock && am.dock.shape !== "" ? 56 : 44
+                        name: modelData.icon || ""; keys: [modelData.id, modelData.name]
+                        look: am.dock ? am.dock.look : "original"; shape: am.dock ? am.dock.shape : ""; colors: pal
+                        hover: cm.containsMouse; pressed: cm.pressed }
                 }
                 Text { anchors.horizontalCenter: parent.horizontalCenter; y: 76; width: parent.width - 14; horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight; text: modelData.name; color: pal.fg; font.family: Fonts.main; font.pixelSize: 12 }

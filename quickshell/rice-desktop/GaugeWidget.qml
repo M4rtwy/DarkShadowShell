@@ -26,7 +26,7 @@ Item {
         else { val = j.cpu; big = String(j.cpu); unit = "%"; label = j.temp ? "CPU · " + j.temp + "°" : "CPU"; sym = "\uf4bc" }
     }
     // one rice-stats for the whole shell (Stats.qml)
-    StatsHold { on: gw.running && gw.metric !== "battery" }
+    StatsHold { on: gw.running && gw.metric !== "battery" && !Look.covered }   // V4.95: no sampling while windows cover it
     Connections { target: Stats; function onStChanged() { if (gw.running && gw.metric !== "battery") gw.take(Stats.st) } }
     // battery from sysfs, no extra program
     Timer {
@@ -60,7 +60,7 @@ Item {
             property real lv: gw.val
             property real ph: 0
             Behavior on lv { NumberAnimation { duration: 900; easing.type: Easing.OutCubic } }
-            Timer { interval: 33; repeat: true; running: gw.running && gw.water && !Look.lite && !Look.covered; onTriggered: liquid.ph = (Date.now() % 3000) / 3000 * Math.PI * 2 }  // ~30 a second (V4.84)
+            Timer { interval: 50; repeat: true; running: gw.running && gw.water && !Look.lite && !Look.covered; onTriggered: liquid.ph = (Date.now() % 3000) / 3000 * Math.PI * 2 }  // 20 a second (V4.96; 30 since V4.84)
             onLvChanged: requestPaint(); onPhChanged: requestPaint()
             renderStrategy: Canvas.Cooperative
             onPaint: {
@@ -99,7 +99,7 @@ Item {
         property real v: gw.val
         property real ph: 0
         Behavior on v { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
-        Timer { interval: 33; repeat: true; running: gw.running && !Look.lite && !Look.covered; onTriggered: ring.ph = (Date.now() % 2400) / 2400 * Math.PI * 2 }  // ~30 a second (V4.84)
+        Timer { interval: 50; repeat: true; running: gw.running && !Look.lite && !Look.covered; onTriggered: ring.ph = (Date.now() % 2400) / 2400 * Math.PI * 2 }  // 20 a second (V4.96; 30 since V4.84)
         onVChanged: requestPaint()
         onPhChanged: requestPaint()
         renderStrategy: Canvas.Cooperative

@@ -24,14 +24,17 @@ PanelWindow {
     readonly property real alpha: Look.flat ? 1 : 0.62
     readonly property color bg: Qt.rgba(0.05, 0.05, 0.05, alpha)
     property var bc: ({})
-    readonly property bool atBottom: bc.position === "bottom"
-    readonly property real barSpace: (bc.enabled === false ? 34 : (bc.height ? bc.height : 38)) + (bc.style === "flat" ? 0 : 16) + 8
+    // V4.95: opened from the dock ("dock:SPACE" after the place): it opens above the dock, not by the bar
+    property real dockSpace: -1
+    readonly property bool fromDock: dockSpace >= 0
+    readonly property bool atBottom: fromDock || bc.position === "bottom"
+    readonly property real barSpace: fromDock ? dockSpace : ((bc.enabled === false ? 34 : (bc.height ? bc.height : 38)) + (bc.style === "flat" ? 0 : 16) + 8)
 
     // ---------- data ----------
     property real cx: 0
     // the bar on the left or right edge (VBar.qml): the menu opens beside the bar, level with the icon (cy)
     property real cy: -1
-    readonly property bool side: bc.position === "left" || bc.position === "right"
+    readonly property bool side: !fromDock && (bc.position === "left" || bc.position === "right")
     readonly property bool atRight: bc.position === "right"
     readonly property real sideSpace: (bc.enabled === false ? 34 : (bc.height ? bc.height + 4 : 42)) + (bc.style === "flat" ? 0 : 16) + 8
     property bool radio: true
@@ -82,8 +85,16 @@ PanelWindow {
         // for a few reads instead of showing "no networks" (that was the list that sometimes went blank)
         if (list.length === 0 && nets.length > 0 && radio && emptyN < 3) { emptyN++; return }
         emptyN = 0
+        // V4.94: the list is made again only when something in it changed, and never while you type a password:
+        // every read (each 5 s) made all the rows again, which emptied the password field while you typed
+        if (askFor !== "") return
+        const js = JSON.stringify(list)
+        if (js === netsJs) return
+        netsJs = js
         nets = list
     }
+    property string netsJs: ""
+    property string pw: ""              // the password you type (kept here, not in a row that could be made again)
 
     Process {
         id: stateProc
@@ -151,7 +162,8 @@ PanelWindow {
     Trigger {
         name: "wifi-open"; fresh: true
         onFired: function(o) {
-            const x = parseFloat(o.split(" ")[1]), yv = parseFloat(o.split(" ")[2])
+            const x = parseFloat(o.split(" ")[1]), y2 = o.split(" ")[2] || "", yv = parseFloat(y2)
+            wm.dockSpace = y2.indexOf("dock:") === 0 ? (parseFloat(y2.substring(5)) || 80) : -1
             if (wm.open) wm.hide(); else wm.show(isNaN(x) ? wm.width - 200 : x, yv)
         }
     }
@@ -306,7 +318,9 @@ PanelWindow {
                                 echoMode: showPw.checked ? TextInput.Normal : TextInput.Password
                                 color: wm.fg; font.family: Fonts.main; font.pixelSize: 14; clip: true
                                 passwordCharacter: "•"
-                                onVisibleChanged: if (visible) { text = ""; forceActiveFocus() }
+                                text: wm.pw
+                                onTextChanged: if (text !== wm.pw) wm.pw = text
+                                onVisibleChanged: if (visible) { wm.pw = ""; forceActiveFocus() }
                                 Keys.onReturnPressed: if (text.length >= 8) wm.connect(modelData, text)
                                 Keys.onEnterPressed: if (text.length >= 8) wm.connect(modelData, text)
                                 Keys.onEscapePressed: wm.askFor = ""
