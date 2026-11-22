@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# rice-running NAME        exit 0 when the Quickshell config NAME (rice-desktop) is running
+# rice-running NAME kill   close it
+# After a crash Quickshell starts itself again without its arguments: "pgrep -f quickshell/NAME" does not see it any
+# more, so every script thought the shell was gone (rice-launch then waited more than a second on every press).
+# Quickshell's own list still knows the config.
+name="${1:?usage: rice-running NAME [kill]}"
+dir="$HOME/.config/quickshell/$name"
+listed() { qs list -p "$dir" 2>/dev/null | grep -q "Process ID"; }
+case "${2:-}" in
+  kill) pkill -f "quickshell/$name"; listed && qs kill -p "$dir" >/dev/null 2>&1; exit 0 ;;
+  "") pgrep -f "quickshell/$name" >/dev/null 2>&1 || listed ;;
+  *) echo "usage: rice-running NAME [kill]" >&2; exit 2 ;;
+esac
